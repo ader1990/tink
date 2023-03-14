@@ -360,6 +360,24 @@ func (w *Worker) ProcessWorkflowActions(ctx context.Context) error {
 				// get workflow data
 				w.getWorkflowData(ctx, wfID)
 
+				if len(actions.GetActionList()) == actionIndex+1 && action.GetName() == "reboot" {
+					l.Info("reached before start of last action which is a reboot")
+					actionStatusLast := &pb.WorkflowActionStatus{
+						WorkflowId: wfID,
+						TaskName:   action.GetTaskName(),
+						ActionName: action.GetName(),
+						Seconds:    0,
+						WorkerId:   action.GetWorkerId(),
+					}
+					actionStatusLast.ActionStatus = pb.State_STATE_SUCCESS
+					err := w.reportActionStatus(ctx, actionStatusLast)
+					if err != nil {
+						exitWithGrpcError(err, l)
+					}
+					l.Info("sent action status for last action before starting it")
+
+				}
+
 				// start executing the action
 				start := time.Now()
 				st, err := w.execute(ctx, wfID, action)
